@@ -3,8 +3,8 @@ import re
 from pathlib import Path
 from typing import Optional, List
 
-from dcimm import CopyItem
-from dcimm import LocalDateTime
+from dcimm.CopyItem import CopyItem
+from dcimm.LocalDateTime import LocalDateTime
 
 
 def make_copy_items(src_files: List[Path], dest_dir: Path) -> List[CopyItem]:
