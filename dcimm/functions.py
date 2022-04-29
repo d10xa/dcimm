@@ -1,7 +1,7 @@
 import os
 import re
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional, List, Generator, Tuple
 
 from dcimm.CopyItem import CopyItem
 from dcimm.LocalDateTime import LocalDateTime
@@ -19,23 +19,21 @@ def make_copy_items(src_files: List[Path], dest_dir: Path) -> List[CopyItem]:
     return res
 
 
-def list_files(path: str):
-    res = []
+def list_files(path: str) -> Generator[Tuple[Path, List[Path]], None, None]:
+    files: List[Path] = []
     for filename in os.listdir(path):
         p = Path(path, filename)
         if p.is_file() and not p.is_symlink():
-            res.append(p)
-    return res
+            files.append(p)
+    yield Path(path), files
 
 
-def list_files_recursive(path: str):
-    res = []
+def list_files_recursive(path: str) -> Generator[Tuple[Path, List[Path]], None, None]:
     for root, dirs, files in os.walk(path, topdown=False, followlinks=False):
         for file in files:
             p = Path(root, file)
             if p.is_file() and not p.is_symlink():
-                res.append(p)
-    return res
+                yield p
 
 
 pattern = re.compile(r'(20\d{2})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})*.jpg')
