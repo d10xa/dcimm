@@ -26,6 +26,8 @@ setup(
     ],
     packages=["dcimm"],
     include_package_data=True,
-    install_requires=[],
+    install_requires=[
+        'exif==1.3.5'
+    ],
     entry_points={"console_scripts": ["dcimm=dcimm.__main__:main"]},
 )

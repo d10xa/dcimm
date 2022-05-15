@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import List
 
 from dcimm.ChecksumFileLine import ChecksumFileLine
+from dcimm.CopyItem import CopyItem
 from dcimm.functions import list_files, make_copy_items
 
 
@@ -21,7 +22,7 @@ def main():
                 lines = parse_checksum_file(f.readlines())
         file_to_sumfileline = {i.name: i for i in lines}
 
-        copy_items = make_copy_items(files, Path(dest_dir))
+        copy_items: list[CopyItem] = make_copy_items(files, Path(dest_dir))
         print(f'copy_items: {copy_items}')
 
         for c in copy_items:
