@@ -14,8 +14,16 @@ from dcimm.ChecksumFileLine import ChecksumFileLine
 from dcimm.CopyItem import CopyItem
 
 
-def run(src_dir: str, dest_dir: str):
-    for dir, files in list_files(src_dir):
+def flat_map(f, xs):
+    ys = []
+    for x in xs:
+        ys.extend(f(x))
+    return ys
+
+
+# TODO dry-run refactoring
+def run(src: List[str], dest: str, dry_run: bool):
+    for dir, files in flat_map(list_files, src):
         sumfile = Path(dir, f'{dir.name}.sha256')
         print(sumfile)
 
@@ -25,7 +33,7 @@ def run(src_dir: str, dest_dir: str):
                 lines = parse_checksum_file(f.readlines())
         file_to_sumfileline = {i.name: i for i in lines}
 
-        copy_items: list[CopyItem] = make_copy_items(files, Path(dest_dir))
+        copy_items: list[CopyItem] = make_copy_items(files, Path(dest))
         print(f'copy_items: {copy_items}')
 
         for c in copy_items:
@@ -36,14 +44,24 @@ def run(src_dir: str, dest_dir: str):
             if c.from_file == sumfile:
                 print(f'original sumfile ignored (ok): {sumfile}')
                 continue
-            c.to_file.parent.mkdir(parents=True, exist_ok=True)
+            if dry_run:
+                if not c.to_file.parent.exists():
+                    print(f'dry-run: mkdir {c.to_file.parent}')
+            else:
+                c.to_file.parent.mkdir(parents=True, exist_ok=True)
             new_sumfile=Path(c.to_file.parent, f'{c.to_file.parent.name}.sha256')
-            shutil.copy2(c.from_file, c.to_file)
+            if dry_run:
+                print(f'dry-run: copy {c.from_file} to {c.to_file}')
+            else:
+                shutil.copy2(c.from_file, c.to_file)
             if c.from_file.name in file_to_sumfileline:
                 line = file_to_sumfileline.get(c.from_file.name)
                 if line:
-                    with open(new_sumfile, 'a+') as newfile:
-                        newfile.write(f'{line.raw}\n')
+                    if dry_run:
+                        print(f'dry-run: sumfile {new_sumfile} append line {line.raw}')
+                    else:
+                        with open(new_sumfile, 'a+') as newfile:
+                            newfile.write(f'{line.raw}\n')
                 else:
                     print(f'NOT FOUND CHECKSUM: {c.from_file.name}')
 
