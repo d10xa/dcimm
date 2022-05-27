@@ -1,6 +1,5 @@
 import os
 import re
-import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import Generator
@@ -12,6 +11,7 @@ from exif import Image
 
 from dcimm.ChecksumFileLine import ChecksumFileLine
 from dcimm.CopyItem import CopyItem
+from dcimm.FsUtil import FsUtil
 
 
 def flat_map(f, xs):
@@ -21,8 +21,8 @@ def flat_map(f, xs):
     return ys
 
 
-# TODO dry-run refactoring
 def run(src: List[str], dest: str, dry_run: bool):
+    fs_util: FsUtil = FsUtil.make(dry_run=dry_run)
     for dir, files in flat_map(list_files, src):
         sumfile = Path(dir, f'{dir.name}.sha256')
         print(sumfile)
@@ -44,24 +44,13 @@ def run(src: List[str], dest: str, dry_run: bool):
             if c.from_file == sumfile:
                 print(f'original sumfile ignored (ok): {sumfile}')
                 continue
-            if dry_run:
-                if not c.to_file.parent.exists():
-                    print(f'dry-run: mkdir {c.to_file.parent}')
-            else:
-                c.to_file.parent.mkdir(parents=True, exist_ok=True)
+            fs_util.mk_dir(c.to_file.parent)
             new_sumfile=Path(c.to_file.parent, f'{c.to_file.parent.name}.sha256')
-            if dry_run:
-                print(f'dry-run: copy {c.from_file} to {c.to_file}')
-            else:
-                shutil.copy2(c.from_file, c.to_file)
+            fs_util.copy2(c.from_file, c.to_file)
             if c.from_file.name in file_to_sumfileline:
                 line = file_to_sumfileline.get(c.from_file.name)
                 if line:
-                    if dry_run:
-                        print(f'dry-run: sumfile {new_sumfile} append line {line.raw}')
-                    else:
-                        with open(new_sumfile, 'a+') as newfile:
-                            newfile.write(f'{line.raw}\n')
+                    fs_util.append_line(new_sumfile, line.raw)
                 else:
                     print(f'NOT FOUND CHECKSUM: {c.from_file.name}')
 
